@@ -86,3 +86,32 @@ def test_attach_ratings_as_of_and_seniority_override():
     })
     out = attach_ratings(panel, ratings)
     assert out["rating_numeric"].tolist() == [6.0, 7.0, 4.0]
+
+
+def test_load_ratings_carries_agencies_forward(tmp_path):
+    from bloomberg_adapter.manual_csv import load_ratings, normalize_rating
+    p = tmp_path / "ratings.csv"
+    p.write_text(
+        "issuer,seniority,effective_date,sp,moodys,dbrs,source,quote,notes\n"
+        "Enbridge Inc,,2023-02-10,BBB+,Baa1,BBB(High),x,,\n"
+        "Enbridge Inc,,2024-03-29,,Baa2,,x,,rating action\n"
+    )
+    r = load_ratings(p)
+    assert r["moodys"].tolist() == ["Baa1", "Baa2"]
+    assert r["sp"].tolist() == ["BBB+", "BBB+"] and r["dbrs"].iloc[1] == "BBB (high)"
+    assert r["rating_numeric"].tolist() == pytest.approx([8.0, (8 + 9 + 8) / 3])
+    assert normalize_rating("sp", "A+ (stable)") == "A+"
+    with pytest.raises(ValueError):
+        normalize_rating("moodys", "BBB")
+
+
+def test_withdrawn_rating_stops_carry_forward(tmp_path):
+    from bloomberg_adapter.manual_csv import load_ratings
+    p = tmp_path / "ratings.csv"
+    p.write_text(
+        "issuer,seniority,effective_date,sp,moodys,dbrs,source,quote,notes\n"
+        "Fortis Inc,,2025-02-14,BBB+,Baa3,A (low),x,,\n"
+        "Fortis Inc,,2026-01-01,,WR,,x,,rating action\n"
+    )
+    r = load_ratings(p)
+    assert r["rating_numeric"].tolist() == pytest.approx([(8 + 10 + 7) / 3, (8 + 7) / 2])

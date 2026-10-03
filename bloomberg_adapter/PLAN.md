@@ -257,6 +257,26 @@ Median G-spread (bp): 2023 banks 112 / pipelines 172 / telecom 164 / utilities 1
 reads `data/processed/bond_panel.csv`. Filter with `size_ok != False` and `rating_ok != False`
 once the manual CSVs are filled.
 
+### Ratings from AIFs (✅ done 2026-10-03, 3 issuers manual)
+
+Canadian issuers must disclose their credit ratings in the Annual Information Form, which most
+attach to their 40-F on EDGAR. `aif_ratings.py` finds the AIF in each annual filing (2021–2026),
+caches the full text (`data/raw/aif/full/*.txt.gz`) and the ratings section. Three agents read
+the filings and wrote dated rows with verbatim quotes (`data/raw/aif/extracted/*.csv`);
+`aif_ratings.py --merge` rejects any row whose quote is not an exact substring of the filing or
+does not contain the rating, then writes `reference/ratings.csv`.
+
+- 98 dated rows, 0 rejected: 5 banks (legacy + bail-in senior), Bell, Rogers, TELUS,
+  TCPL, Pembina, Fortis, Enbridge (from dated rating actions in its 10-K).
+- Effective date = the AIF's stated "as at" date, else the filing date; dated rating actions
+  (e.g. BCE downgrades Aug/Sep 2024, May 2025) get their own rows. Each agency is carried
+  forward separately; `WR` marks a withdrawal (Moody's on Fortis, Jan 2026).
+- Coverage: 80% of bond-months. **Missing: Hydro One, Brookfield Infrastructure Finance,
+  National Bank** (not on EDGAR / no ratings in the 20-F). Add them by hand from their AIFs or
+  annual reports on SEDAR+ or their investor-relations sites.
+- Limitation: between AIFs, only rating changes a filing mentions are captured; others show up
+  at the next annual filing (up to ~12 months late).
+
 ## Trade-offs versus Bloomberg (put these in the write-up)
 
 - **Evaluated vs traded prices.** ETF holdings use evaluated (vendor-model) prices, which are

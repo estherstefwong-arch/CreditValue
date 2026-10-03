@@ -1,5 +1,6 @@
 """Hand-maintained reference data: issuer ratings and bond amounts outstanding."""
 
+import re
 from pathlib import Path
 
 import numpy as np
@@ -19,8 +20,25 @@ _SCALES = {
     "dbrs": {r: i + 1 for i, r in enumerate(_DBRS)},
 }
 
-RATINGS_COLUMNS = ["issuer", "seniority", "effective_date", "sp", "moodys", "dbrs", "source"]
+RATINGS_COLUMNS = ["issuer", "seniority", "effective_date", "sp", "moodys", "dbrs", "source", "quote", "notes"]
+AGENCIES = ["sp", "moodys", "dbrs"]
+WITHDRAWN = "WR"  # agency withdrew its rating: stops the carry-forward
 AMOUNTS_COLUMNS = ["isin", "issuer", "coupon", "maturity", "amount_outstanding", "source"]
+
+
+def normalize_rating(agency: str, raw: str | None) -> str:
+    """'BBB(high)' -> 'BBB (high)', drops outlooks / footnotes; '' if not a recognized rating."""
+    if not isinstance(raw, str) or not raw.strip():
+        return ""
+    if raw.strip().upper() == WITHDRAWN:
+        return WITHDRAWN
+    r = re.sub(r"\s*\(\s*(high|low)\s*\)", r" (\1)", raw.strip(), flags=re.I)
+    r = re.sub(r"\((high|low)\)", lambda m: f"({m.group(1).lower()})", r, flags=re.I)
+    r = re.sub(r"\((?!high\)|low\))[^)]*\)", "", r)  # (hyb), (stable), (sf) ...
+    r = re.split(r"\s*(?:\*|,|/|stable|negative|positive|outlook)", r, flags=re.I)[0].strip()
+    if r not in _SCALES[agency]:
+        raise ValueError(f"unrecognized {agency} rating: {raw!r}")
+    return r
 
 
 def rating_to_numeric(sp: str | None, moodys: str | None, dbrs: str | None) -> float:
@@ -28,7 +46,7 @@ def rating_to_numeric(sp: str | None, moodys: str | None, dbrs: str | None) -> f
     scores = [
         _SCALES[agency][str(r).strip()]
         for agency, r in (("sp", sp), ("moodys", moodys), ("dbrs", dbrs))
-        if isinstance(r, str) and r.strip()
+        if isinstance(r, str) and r.strip() and r.strip() != WITHDRAWN
     ]
     return float(np.mean(scores)) if scores else np.nan
 
@@ -38,9 +56,15 @@ def load_ratings(path: Path = RATINGS_PATH) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame(columns=RATINGS_COLUMNS + ["rating_numeric"])
     r = pd.read_csv(path, dtype=str, keep_default_na=False)
+    r = r[r["effective_date"] != ""].copy()
     r["effective_date"] = pd.to_datetime(r["effective_date"])
+    for agency in AGENCIES:
+        r[agency] = [normalize_rating(agency, x) for x in r[agency]]
+    # A rating-action row changes one agency; carry the others forward from earlier rows.
+    r = r.sort_values("effective_date")
+    r[AGENCIES] = r[AGENCIES].replace("", np.nan).groupby([r["issuer"], r["seniority"]]).ffill().fillna("")
     r["rating_numeric"] = [rating_to_numeric(*x) for x in zip(r["sp"], r["moodys"], r["dbrs"])]
-    return r.dropna(subset=["rating_numeric"])
+    return r.dropna(subset=["rating_numeric"]).reset_index(drop=True)
 
 
 def attach_ratings(panel: pd.DataFrame, ratings: pd.DataFrame) -> pd.DataFrame:

@@ -13,7 +13,7 @@
 | PASS | banks tighter than telecom and pipelines | true in 100% of month-ends |
 | PASS | spread curves slope upward with maturity | 100% of sector-months; Banks 100%, Pipelines 100%, Telecom 100%, Utilities 100% |
 | WARN | leverage coverage (non-banks) | 85% of bond-months; missing for H |
-| WARN | rating coverage | 0% of bond-months (fill reference/ratings.csv) |
+| WARN | rating coverage | 80% of bond-months (fill reference/ratings.csv) |
 | WARN | amount outstanding coverage | 0% of bond-months; size filter not applied where missing |
 | PASS | stale prices | 0.5% of bond-months |
 
