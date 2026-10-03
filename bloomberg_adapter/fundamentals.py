@@ -84,8 +84,7 @@ def main() -> None:
     combined.to_csv(PROCESSED_DIR / "issuer_fundamentals.csv", index=False)
 
     panel = pd.read_csv(PROCESSED_DIR / "bond_panel_xcb.csv", parse_dates=["date"])
-    out = attach(panel, combined)
-    out.to_csv(PROCESSED_DIR / "bond_panel_with_fundamentals.csv", index=False)
+    out = attach(panel, combined)  # preview only; build_panel writes the final panel
 
     missing = sorted(set(panel.loc[panel["sector"] != "Banks", "parent"]) - set(combined["parent"]))
     print(f"Fundamentals: {len(combined)} rows for {combined['parent'].nunique()} parents "

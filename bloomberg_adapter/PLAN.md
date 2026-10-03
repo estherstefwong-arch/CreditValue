@@ -226,13 +226,36 @@ TRP 5.5x, BIP 5.7x, FTS 6.1x, ENB 6.4x.
    (bank dummy + bail-in/legacy) and rely on rating; leverage enters as zero with a non-bank
    interaction, or the regression runs separately for banks.
 
-### Phase 4: Build, validate, freeze (end of week 3)
+### Phase 4: Build, validate, freeze (✅ done 2026-10-03)
 
-- [ ] `build_panel.py` writes `data/processed/bond_panel.csv` and `issuer_fundamentals.csv`.
-- [ ] Sanity checks: computed G-spreads in a plausible range (roughly 50–250bp for this IG
-      universe), banks tighter than telecom, curves upward-sloping by maturity.
-- [ ] Cross-check a few bonds' yields: ETF file vs CIRO-implied.
-- [ ] Commit a frozen snapshot so results are reproducible.
+Run: `uv run python -m bloomberg_adapter.build_panel` (all inputs cached; `--refresh-curve`
+re-downloads the GoC curve). Rerun after editing any `reference/*.csv`.
+
+Outputs in `data/processed/`:
+- `bond_panel.csv`: **the model input**. One row per bond per month-end: terms, price, yield,
+  `workout_date`, `years_to_workout`, `goc_yield`, `g_spread_bp`, `leverage`, `coverage`,
+  `rating_numeric`, `amount_outstanding`, plus model fields `is_bank`, `seniority`,
+  `discount_pts` (100 − price, the tax-effect control), `size_ok` / `rating_ok` (NaN = unknown).
+- `issuer_fundamentals.csv`, `validation_report.md`, `manifest.json` (SHA-256 of every input
+  and output, so results trace to an exact snapshot).
+
+- [x] `build_panel.py` assembles bonds + G-spreads + fundamentals.
+- [x] `validate.py`: FAIL = data wrong (build exits non-zero), WARN = incomplete.
+- [x] CIRO cross-check replaced by the ETF-duration check (CIRO can't be scripted); do a manual
+      CIRO check on the bonds you end up pitching.
+- [ ] Commit the frozen snapshot.
+
+**Validation (2026-10-03):** all data checks pass. 114–140 bonds per month-end, all four
+sectors every month; spread curves slope upward in 100% of sector-months; banks tightest in
+100% of months; only 13 rows (National Bank 1.57% 2026) outside 0–300bp. Warnings are the
+manual inputs: ratings 0%, amounts 0%, non-bank leverage 85% (Hydro One).
+
+Median G-spread (bp): 2023 banks 112 / pipelines 172 / telecom 164 / utilities 132 →
+2026 banks 68 / pipelines 94 / telecom 84 / utilities 74.
+
+**Next (outside this adapter):** the PRD's `src/` model (curves, regression, backtest, trade)
+reads `data/processed/bond_panel.csv`. Filter with `size_ok != False` and `rating_ok != False`
+once the manual CSVs are filled.
 
 ## Trade-offs versus Bloomberg (put these in the write-up)
 
