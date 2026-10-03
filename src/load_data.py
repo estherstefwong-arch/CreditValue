@@ -1,107 +1,49 @@
-"""Read and clean raw data: GoC benchmark yields and the Bloomberg bond panel."""
+"""Load the model inputs built by bloomberg_adapter (run `python -m bloomberg_adapter.build_panel`)."""
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-import requests
+
+from bloomberg_adapter.boc_valet import to_month_end
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw"
 PROCESSED = ROOT / "data" / "processed"
 
-VALET_URL = "https://www.bankofcanada.ca/valet/observations/{series}/json"
-
-# Bank of Canada benchmark bond yield series, keyed by tenor in years.
-GOC_SERIES = {
-    2: "BD.CDN.2YR.DQ.YLD",
-    3: "BD.CDN.3YR.DQ.YLD",
-    5: "BD.CDN.5YR.DQ.YLD",
-    7: "BD.CDN.7YR.DQ.YLD",
-    10: "BD.CDN.10YR.DQ.YLD",
-}
-
-# Numeric rating scale: AAA = 1 ... BBB- = 10 (lower is better).
-_SP_SCALE = ["AAA", "AA+", "AA", "AA-", "A+", "A", "A-", "BBB+", "BBB", "BBB-"]
-_MOODY_SCALE = ["Aaa", "Aa1", "Aa2", "Aa3", "A1", "A2", "A3", "Baa1", "Baa2", "Baa3"]
-_DBRS_SCALE = ["AAA", "AA (high)", "AA", "AA (low)", "A (high)", "A", "A (low)",
-               "BBB (high)", "BBB", "BBB (low)"]
-RATING_MAP = {
-    **{r: i + 1 for i, r in enumerate(_SP_SCALE)},
-    **{r: i + 1 for i, r in enumerate(_MOODY_SCALE)},
-    **{r.upper(): i + 1 for i, r in enumerate(_DBRS_SCALE)},
-}
-
-
-def fetch_goc_yields(start="2023-01-01", end=None, save=True):
-    """Download daily GoC benchmark yields (in %) from the Bank of Canada Valet API.
-
-    Returns a DataFrame indexed by date with one column per tenor (years).
-    """
-    params = {"start_date": start}
-    if end:
-        params["end_date"] = end
-    resp = requests.get(VALET_URL.format(series=",".join(GOC_SERIES.values())),
-                        params=params, timeout=30)
-    resp.raise_for_status()
-
-    rows = []
-    for obs in resp.json()["observations"]:
-        row = {"date": obs["d"]}
-        for tenor, series in GOC_SERIES.items():
-            value = obs.get(series, {}).get("v")
-            row[tenor] = float(value) if value not in (None, "") else np.nan
-        rows.append(row)
-
-    df = pd.DataFrame(rows)
-    df["date"] = pd.to_datetime(df["date"])
-    df = df.set_index("date").sort_index()
-
-    if save:
-        RAW.mkdir(parents=True, exist_ok=True)
-        df.to_csv(RAW / "goc_yields_daily.csv")
-    return df
+GOC_DAILY = RAW / "boc" / "goc_benchmark_daily.csv"
+BOND_PANEL = PROCESSED / "bond_panel.csv"
+FUNDAMENTALS = PROCESSED / "issuer_fundamentals.csv"
 
 
 def load_goc_yields(monthly=True):
-    """Load saved GoC yields; month-end resample by default to match the bond panel."""
-    df = pd.read_csv(RAW / "goc_yields_daily.csv", index_col="date", parse_dates=True)
-    df.columns = df.columns.astype(int)
+    """GoC benchmark yields (%) indexed by date, one column per tenor in years.
+
+    Month-end (last business day) by default to match the bond panel.
+    """
+    long = pd.read_csv(GOC_DAILY, parse_dates=["date"])
     if monthly:
-        df = df.resample("ME").last()
+        long = to_month_end(long)  # drops an in-progress final month
+    df = long.pivot(index="date", columns="tenor_years", values="yield").sort_index()
+    df.columns = df.columns.astype(float)
     return df
 
 
-def rating_to_numeric(rating):
-    """Convert one agency rating string to the 1-10 scale; NaN if missing or below BBB-."""
-    if not isinstance(rating, str) or not rating.strip():
-        return np.nan
-    r = rating.strip().replace("*-", "").replace("*+", "").replace("*", "")
-    return RATING_MAP.get(r, RATING_MAP.get(r.upper(), np.nan))
+def load_bonds(path=None, prd_filters=True):
+    """Month-end bond panel: one row per bond per month with yield, G-spread and fundamentals.
 
-
-def average_rating(df, cols=("rtg_sp", "rtg_moody", "rtg_dbrs")):
-    """Average the numeric rating across whichever agencies rate the bond."""
-    present = [c for c in cols if c in df.columns]
-    numeric = df[present].apply(lambda s: s.map(rating_to_numeric))
-    return numeric.mean(axis=1)
-
-
-def load_bonds(path=None):
-    """Load the Bloomberg month-end bond panel and apply basic cleaning.
-
-    Expects the columns in data/raw/bonds_template.csv.
+    `rating` is the average agency rating (AAA = 1 … BBB- = 10). With prd_filters, bonds known
+    to fail the BBB- or C$300mm screens are dropped; bonds with unknown rating/size are kept.
+    The 2-12 year and senior/fixed-coupon screens are already applied upstream.
     """
-    path = path or RAW / "bonds_monthly.csv"
-    df = pd.read_csv(path, parse_dates=["date", "maturity", "issue_date"])
-
-    df["rating"] = average_rating(df)
+    df = pd.read_csv(path or BOND_PANEL,
+                     parse_dates=["date", "maturity", "workout_date", "issue_date", "fundamentals_period_end"])
+    df = df.rename(columns={"rating_numeric": "rating", "g_spread_bp": "g_spread"})
     df["years_to_maturity"] = (df["maturity"] - df["date"]).dt.days / 365.25
-
-    # PRD filters: IG only, 2-12 years, at least C$300mm outstanding.
-    df = df[
-        (df["rating"] <= 10)
-        & df["years_to_maturity"].between(2, 12)
-        & (df["amt_outstanding"] >= 300e6)
-    ]
+    if prd_filters:
+        df = df[(df["rating_ok"] != 0) & (df["size_ok"] != 0)]
     return df.sort_values(["isin", "date"]).reset_index(drop=True)
+
+
+def load_fundamentals():
+    """Issuer fundamentals by period end, with the filing date they became available."""
+    return pd.read_csv(FUNDAMENTALS, parse_dates=["period_end", "available_date"])
