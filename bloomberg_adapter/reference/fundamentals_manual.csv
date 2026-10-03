@@ -1,0 +1,8 @@
+parent,period_end,available_date,net_debt,ebitda,interest_expense,total_assets,currency,source,note
+H,2020-12-31,,,,,,,SEDAR+ annual report,not on EDGAR
+H,2021-12-31,,,,,,,SEDAR+ annual report,not on EDGAR
+H,2022-12-31,,,,,,,SEDAR+ annual report,not on EDGAR
+H,2023-12-31,,,,,,,SEDAR+ annual report,not on EDGAR
+H,2024-12-31,,,,,,,SEDAR+ annual report,not on EDGAR
+H,2025-12-31,,,,,,,SEDAR+ annual report,not on EDGAR
+PPL,2022-12-31,2023-02-23,,,,,,Pembina 2022 annual report (adjusted EBITDA),EDGAR EBITDA includes the one-time gain from the 2022 Pembina Gas Infrastructure JV; enter EBITDA excluding it

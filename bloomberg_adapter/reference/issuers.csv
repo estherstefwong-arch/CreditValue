@@ -1,0 +1,24 @@
+name,issuer,parent,sector,include,note
+ROYAL BANK OF CANADA,Royal Bank of Canada,RY,Banks,true,
+TORONTO-DOMINION BANK/THE,Toronto-Dominion Bank,TD,Banks,true,
+BANK OF MONTREAL,Bank of Montreal,BMO,Banks,true,
+BANK OF NOVA SCOTIA,Bank of Nova Scotia,BNS,Banks,true,
+CANADIAN IMPERIAL BANK OF COMMERCE,Canadian Imperial Bank of Commerce,CM,Banks,true,
+NATIONAL BANK OF CANADA,National Bank of Canada,NA,Banks,true,
+BELL CANADA,Bell Canada,BCE,Telecom,true,BCE's operating company; issues the bonds
+BELL CANADA INC,Bell Canada,BCE,Telecom,true,
+ROGERS COMMUNICATIONS INC,Rogers Communications,RCI,Telecom,true,
+TELUS CORPORATION,TELUS,TU,Telecom,true,
+ENBRIDGE INC,Enbridge Inc,ENB,Pipelines,true,
+TRANSCANADA PIPELINES LTD,TransCanada PipeLines,TRP,Pipelines,true,TC Energy's main debt issuer
+TRANSCANADA PIPELINES LIMITED,TransCanada PipeLines,TRP,Pipelines,true,
+PEMBINA PIPELINE CORP,Pembina Pipeline,PPL,Pipelines,true,
+HYDRO ONE INC,Hydro One Inc,H,Utilities,true,
+FORTIS INC,Fortis Inc,FTS,Utilities,true,
+BROOKFIELD INFRASTRUCTURE FINANCE,Brookfield Infrastructure Finance,BIP,Utilities,true,
+ENBRIDGE GAS INC,Enbridge Gas,ENB,Pipelines,false,regulated subsidiary with its own credit profile
+TRANSCANADA TRUST,TransCanada Trust,TRP,Pipelines,false,hybrid capital vehicle
+HYDRO ONE LTD,Hydro One Ltd,H,Utilities,false,holdco; structurally subordinated
+FORTISALBERTA INC,FortisAlberta,FTS,Utilities,false,regulated subsidiary with its own credit profile
+FORTISBC ENERGY INC,FortisBC Energy,FTS,Utilities,false,regulated subsidiary with its own credit profile
+FORTISBC INC,FortisBC,FTS,Utilities,false,regulated subsidiary with its own credit profile
