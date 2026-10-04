@@ -2,7 +2,7 @@
 
 **Finding cheap and rich Canadian investment-grade corporate bonds, and whether the gaps close**
 
-Darrel Wihandi · October 2026 · Code and data: this repository (`notebooks/analysis.ipynb` reproduces every number)
+Esther Wong · October 2026 · Code and data: this repository (`notebooks/analysis.ipynb` reproduces every number)
 
 ---
 
