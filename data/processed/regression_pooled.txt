@@ -4,7 +4,7 @@ Dep. Variable:               g_spread   R-squared:                       0.890
 Model:                            OLS   Adj. R-squared:                  0.888
 Method:                 Least Squares   F-statistic:                -2.400e+13
 Date:                Sat, 03 Oct 2026   Prob (F-statistic):               1.00
-Time:                        16:49:22   Log-Likelihood:                -19123.
+Time:                        20:05:47   Log-Likelihood:                -19123.
 No. Observations:                4708   AIC:                         3.836e+04
 Df Residuals:                    4651   BIC:                         3.873e+04
 Df Model:                          56                                         
