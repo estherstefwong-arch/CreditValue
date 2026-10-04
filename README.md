@@ -25,7 +25,7 @@ echo 'SEC_USER_AGENT="Your Name you@example.com"' > .env
 uv run --group notebook jupyter nbconvert --to notebook --execute --inplace notebooks/analysis.ipynb
 ```
 
-Write-up (method, results, trade, limitations): [`reports/writeup.md`](reports/writeup.md). Resume bullets and interview notes: [`reports/resume_bullets.md`](reports/resume_bullets.md).
+Write-up (method, results, trade, limitations): [`reports/writeup.md`](reports/writeup.md). Final trade pitch with Bloomberg and CIRO checks: [`reports/trade_pitch_final.md`](reports/trade_pitch_final.md). Resume bullets and interview notes: [`reports/resume_bullets.md`](reports/resume_bullets.md).
 
 ## Data
 
@@ -63,7 +63,7 @@ bonds = load_bonds()   # 233 bonds, 45 month-ends (Jan 2023 – Sep 2026)
 | Issuer and sector curves | `src/curves.py` | Done (premium/age-adjusted, leave-one-out) |
 | Fundamental regression | `src/regression.py` | Done (12 of 15 issuers until manual ratings are filled) |
 | Mean-reversion backtest | `src/backtest.py` | Done |
-| Trade construction | `src/trade.py` | Done; draft pitch in `reports/trade_pitch.md` |
+| Trade construction | `src/trade.py` | Done; final pitch in `reports/trade_pitch_final.md` (model draft: `reports/trade_pitch.md`) |
 
 ## Curves
 
@@ -110,7 +110,9 @@ Reading it honestly:
 - Expected P&L over the horizon (default 12 months ≈ one half-life) = gap × (1 − 0.94^h) + yield carry (repo ≈ 2y GoC) + roll-down on each issuer curve − 2bp bid/ask per leg. Stop = 2× the pair's monthly volatility scaled to the horizon.
 - The pitch reports rating actions, leverage trends and how long the gap has persisted, so reasons the model might be wrong are visible.
 
-**Current pitch (Sep 30, 2026):** long Pembina 3.62% Apr-2029 / short TCPL 3.00% Sep-2029. Same sector, both 2019 vintage, prices 98.9 / 97.2. Pembina trades 13bp wider despite lower leverage (3.1x vs 4.4x) and similar ratings; 21bp residual gap. Over 12 months: +9.9bp (≈C$23k on C$10mm; CS01 C$2,346) = convergence +11.2, carry +7.9, roll −5.2, costs −4.0; stop 30bp wider. Risks: the gap has persisted ~20bp for a year as TC Energy deleveraged after the South Bow spin-off; Pembina is smaller and has no Moody's rating.
+**Current pitch (Sep 30, 2026):** long Pembina 3.62% Apr-2029 / short TCPL 3.00% Sep-2029. Same sector, both 2019 vintage, prices 98.9 / 97.2. Pembina trades 13bp wider despite lower leverage (3.1x vs 4.4x) and similar ratings; 21bp residual gap. Model estimate over 12 months: +9.9bp (≈C$23k on C$10mm; CS01 C$2,346) = convergence +11.2, carry +7.9, roll −5.2, assumed costs −4.0.
+
+**After real costs** ([`reports/trade_pitch_final.md`](reports/trade_pitch_final.md)): Bloomberg BVAL (12bp gap) and September CIRO trade prints (12–14bp) confirm the ETF-based pricing, but full BVAL bid/ask (−7.3bp) and a ~15bp/yr repo special on the TCPL short (−5.4bp) bring the 12-month expectation to **+1.2bp (≈C$2.9k): roughly breakeven**. At today's 21bp gap it's a hold; a residual gap of ~29bp would be needed for +5bp, so the pitch sets that as the entry threshold. Risks: the gap has persisted ~20bp for a year as TC Energy deleveraged after the South Bow spin-off; Pembina is smaller and has no Moody's rating.
 
 Bank pairs score higher (e.g. long BMO 4.54% 2028 / short TD 4.23% 2029, +10bp over 6 months) but the data can't tell covered, deposit-note and bail-in programs apart; check pricing supplements before using one.
 
