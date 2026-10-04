@@ -57,3 +57,10 @@ def modified_duration(yield_pct: float, coupon: float, settle: date, maturity: d
     disc = flows / (1 + y / FREQ) ** times
     macaulay = np.sum(times / FREQ * disc) / np.sum(disc)
     return macaulay / (1 + y / FREQ)
+
+
+def accrued_interest(coupon: float, settle: date, maturity: date) -> float:
+    """Accrued interest per 100 face (Actual/365, Canadian convention)."""
+    if maturity <= settle:
+        return 0.0
+    return _cash_flow_times(settle, maturity, coupon)[2]
