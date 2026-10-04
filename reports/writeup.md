@@ -11,11 +11,11 @@ Darrel Wihandi · October 2026 · Code and data: this repository (`notebooks/ana
 Bonds from issuers of similar credit quality often trade at different spreads. This project measures those gaps across the Canadian investment-grade corporate market, tests whether they close, and turns the strongest one into a trade.
 
 - **Universe:** 233 CAD senior unsecured bonds from 15 issuers in banks, telecom, pipelines and utilities; 45 month-ends from January 2023 to September 2026 (5,873 bond-months).
-- **No Bloomberg:** prices and terms come from iShares XCB month-end holdings, the government curve from the Bank of Canada, fundamentals from SEC EDGAR filings, and credit ratings from issuers' Annual Information Forms.
+- **Model built without Bloomberg:** prices and terms come from iShares XCB month-end holdings, the government curve from the Bank of Canada, fundamentals from SEC EDGAR filings, and credit ratings from issuers' Annual Information Forms. The pitched trade was then checked against Bloomberg BVAL and CIRO trade prints.
 - **Model:** issuer and sector spread curves plus a fundamental regression (rating, maturity, size, structure controls). Monthly R² 0.87–0.96, mostly because rating and sector sort issuers; leverage and coverage add nothing once those are in.
 - **Structural effects matter more than expected.** Within the same issuer, premium bonds trade up to ~2.5bp wider per price point, older bonds wider, and bank notes callable a year early ~20bp wider. Left uncorrected, "cheap" simply meant "high coupon".
 - **The signal is real but slow.** The cheapest fifth of bonds beat the richest by ~3bp per quarter, in every year tested (Fama-MacBeth t ≈ −6). The half-life of a mispricing is about 8–12 months.
-- **Trade:** long Pembina 3.62% Apr-2029 / short TransCanada PipeLines 3.00% Sep-2029, CS01-neutral. 21bp model gap; Pembina is less levered (3.1x vs 4.4x) with a similar rating yet trades 13bp wider. Expected +9.9bp over 12 months (≈C$23k on C$10mm), including 7.9bp of carry.
+- **Trade:** long Pembina 3.62% Apr-2029 / short TransCanada PipeLines 3.00% Sep-2029, CS01-neutral. 21bp model gap; Pembina is less levered (3.1x vs 4.4x) with a similar rating yet trades 13bp wider. The model expects +9.9bp over 12 months; with real Bloomberg bid/ask and repo borrow it's about +1.2bp, roughly breakeven, so the pitch is a hold with a ~29bp entry threshold.
 
 ---
 
@@ -157,7 +157,7 @@ Most of the closing is the bond's own spread moving (−0.13 of the −0.16 resi
 
 **Why the gap should close.** The two bonds are as alike as the market allows: same sector, same vintage, prices 2 points apart, maturities 5 months apart. Pembina carries much less leverage than TCPL with a similar rating, yet trades 13bp wider; the model puts the gap at 21bp after controlling for maturity, rating, size, coupon, age and structure.
 
-**Sizing and economics.** Legs are sized so each has the same CS01 (C$2,346 per bp), which removes exposure to broad spread moves and, at similar maturities, most rate risk. Over a 12-month holding period (about one half-life):
+**Sizing and model economics.** Legs are sized so each has the same CS01 (C$2,346 per bp), which removes exposure to broad spread moves and, at similar maturities, most rate risk. Over a 12-month holding period (about one half-life), with the model's assumed costs:
 
 | Component | bp | C$ |
 | --- | --- | --- |
@@ -169,27 +169,38 @@ Most of the closing is the bond's own spread moving (−0.13 of the −0.16 resi
 
 Entry spread difference 13bp; target about 1bp; stop at 43bp (30bp wider: twice the pair's monthly volatility scaled to 12 months).
 
+**Checked against Bloomberg and CIRO.** On September 30, Bloomberg BVAL put the pair's G-spread gap at 12bp and September CIRO trade prints implied 12–14bp, both within a basis point or two of the ETF-based 13bp. The pricing holds up. The costs don't: replacing the assumed bid/ask with the full BVAL spread and adding the repo special on the TCPL short changes the result.
+
+| Component | Model | With Bloomberg costs |
+| --- | --- | --- |
+| Convergence + carry + roll-down | +13.9 | +13.9 |
+| Bid/ask | −4.0 (assumed 2bp per leg) | −7.3 (BVAL, full round trip) |
+| Repo borrow on the short (~15bp/yr on C$8.4mm) | not modelled | −5.4 |
+| **Expected, 12 months** | **+9.9bp (≈C$23k)** | **+1.2bp (≈C$3k)** |
+
+At today's 21bp residual gap the trade is roughly breakeven, so it's a hold rather than a buy. With the same costs, a gap of about **29bp** would be needed for +5bp over 12 months; the final pitch (`reports/trade_pitch_final.md`) sets that as the entry threshold. This is the most useful practical lesson of the project: a statistically real signal of a few basis points is easily absorbed by execution and financing costs.
+
 ![Pitched pair: spreads and residual gap](figures/pair_history.png)
 
 **Risks.**
 - **The gap may be pricing something real.** It has held around 20bp for a year, opening as TC Energy cut leverage from 5.5x to 4.4x after the South Bow spin-off. The regression's leverage term is too weak to reward that.
 - **Liquidity and index effects.** Pembina is the smaller issuer and has no Moody's rating.
-- **Evaluated prices.** Both prices are vendor models, not trades; confirm on CIRO trade data before acting.
-- **Risk/reward is modest:** about 10bp expected against 30bp to the stop, in line with a slow-moving signal.
-- **Not modelled:** short-leg borrow, upcoming issuance and news. Check the new-issue calendar first.
+- **Pricing:** confirmed by BVAL and CIRO prints (above).
+- **Risk/reward is thin:** about 1bp expected after real costs against 30bp to the stop, which is why the pitch waits for a wider gap.
+- **Event risk:** as of September 30, no new CAD supply from either issuer in Q3 and no rating actions in the past 90 days; Pembina reports earnings in early November, inside the holding period.
 
 ---
 
 ## 7. Limitations
 
-- **Evaluated, not traded, prices.** ETF holdings are priced by a vendor model, which smooths gaps and can flatter mean reversion.
+- **Evaluated, not traded, prices.** ETF holdings are priced by a vendor model, which smooths gaps and can flatter mean reversion. Only the pitched pair was checked against BVAL and CIRO; the backtest history was not.
 - **Few issuers.** Twelve issuers in the regression (seven non-banks) is enough to sort credit quality, not to estimate the effect of leverage.
 - **Missing inputs.** Ratings for Hydro One, Brookfield Infrastructure and National Bank (20% of bond-months) and amounts outstanding still need hand entry; ETF holding size stands in for issue size.
 - **One regime.** Forty-five month-ends of mostly tightening spreads; mean reversion may behave differently in a selloff.
 - **Inferred structure.** Callables and floaters are detected from duration, and bank covered, deposit-note and bail-in programs can't be told apart.
 - **Small look-ahead.** Structure classification uses each bond's full history; prices, ratings and fundamentals are point-in-time.
 
-**With Bloomberg:** traded and composite prices, labelled structures (call schedules, bail-in flags, covered bonds), amounts outstanding and rating histories would remove most of these. The data layer was built so that feed could slot in directly.
+**With more Bloomberg data:** the pitched pair is already checked on BVAL. Pulling BVAL history, labelled structures (call schedules, bail-in flags, covered bonds), amounts outstanding and rating histories for the whole universe would remove most of the limitations above, and real bid/ask by bond would let the backtest report returns after costs. The data layer was built so that feed could slot in directly.
 
 ---
 
