@@ -17,6 +17,16 @@ To download fresh SEC data, create `.env` with a contact address (SEC requires o
 echo 'SEC_USER_AGENT="Your Name you@example.com"' > .env
 ```
 
+## Walkthrough
+
+[`notebooks/analysis.ipynb`](notebooks/analysis.ipynb) walks through the whole project with outputs saved: data, spreads over time, coupon/age/call effects, spread curves, the regression, the backtest, the trade and limitations. Rerun it with:
+
+```bash
+uv run --group notebook jupyter nbconvert --to notebook --execute --inplace notebooks/analysis.ipynb
+```
+
+Write-up (method, results, trade, limitations): [`reports/writeup.md`](reports/writeup.md). Resume bullets and interview notes: [`reports/resume_bullets.md`](reports/resume_bullets.md).
+
 ## Data
 
 | Data | Source | Module |
